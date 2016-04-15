@@ -31,7 +31,7 @@
 
 //Default constructor: should mainly be used to initialize
 //actions (pointers) and other members
-qPoseslugin::qPosesPlugin(QObject* parent/*=0*/)
+qPosesPlugin::qPosesPlugin(QObject* parent/*=0*/)
 	: QObject(parent)
 	, m_action(0)
 {

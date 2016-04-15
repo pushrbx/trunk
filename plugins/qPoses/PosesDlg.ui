@@ -68,7 +68,7 @@
     <string>Previous Pose</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="nextPostBtn">
+  <widget class="QPushButton" name="nextPoseBtn">
    <property name="enabled">
     <bool>false</bool>
    </property>

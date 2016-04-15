@@ -48,4 +48,6 @@ protected:
 	int m_currentIndex;
 
 	void applyViewport(const cc2DViewportObject* viewport);
-}
+};
+
+#endif

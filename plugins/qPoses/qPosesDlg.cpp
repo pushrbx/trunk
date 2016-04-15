@@ -4,7 +4,11 @@
 //qCC_gl
 #include <ccGLWindow.h>
 #include <CCTypes.h>
+#include <CCGeom.h>
+#include <ccGLMatrix.h>
+#include <ccCameraSensor.h>
 #include "dispatcher.h"
+#include "fileLoadModal.h"
 
 //Qt
 #include <QtGui>
@@ -28,7 +32,7 @@
 qPosesDlg::qPosesDlg(ccGLWindow* view3d, ccMainAppInterface* app, QWidget* parent)
 	: QDialog(parent, Qt::Tool)
 	, Ui::PosesDialog()
-	, m_view3d(view3d).
+	, m_view3d(view3d)
 	, m_app(app)
 	, m_fileLoadWatcher(this)
 	, m_fileLoadModal(new FileLoadDialog(this))
@@ -85,18 +89,17 @@ void qPosesDlg::onBrowseButtonClicked()
 {
 	m_posesFilePath = QFileDialog::getOpenFileName(this, tr("Open .poses file"),
 		QDir::currentPath(), tr("poses files (*.poses)"));
-	this->poseFilePathBox->text = m_posesFilePath;
+	this->poseFilePathBox->setText(m_posesFilePath);
 }
 
 
 void qPosesDlg::onLoadPosesFileBtnClicked()
 {
-	if (this->poseFilePathBox->text != m_posesFilePath)
-		m_posesFilePath = this->poseFilePathBox->text;
+	if (this->poseFilePathBox->text() != m_posesFilePath)
+		m_posesFilePath = this->poseFilePathBox->text();
 
 	if (!m_posesFilePath.isNull())
 	{
-		cloud.reset(new PointCloudT);
 		QFuture<bool> result = QtConcurrent::run(QThreadPool::globalInstance(), this, &qPosesDlg::loadFile, m_posesFilePath);
 		m_fileLoadWatcher.setFuture(result);
 		m_fileLoadModal->show();
@@ -131,12 +134,12 @@ bool qPosesDlg::loadFile(QString fileName)
 		{
 			Pose *entry = *i;
 			cc2DViewportObject *pViewPort = new cc2DViewportObject(QString("Generated_Pose_#%1").arg(idx));
-			ccViewportParameters params = m_view3d->getViewportParameters();
+			ccViewportParameters params(m_view3d->getViewportParameters());
 
 			//orientation matrix
-			ccGLMatrix rot;
+			ccGLMatrixd rot;
 			{
-				float* mat = rot.data();
+				double *mat = rot.data();
 				// for now just an identity matrix:
 				mat[0] = 1; // x
 				mat[1] = 0;
@@ -150,10 +153,11 @@ bool qPosesDlg::loadFile(QString fileName)
 				mat[9] = 0;
 				mat[10] = 1; // z
 			}
+
 			params.viewMat = rot;
-			CCVector3 C(static_cast<PointCoordinateType>(entry->X),
-						static_cast<PointCoordinateType>(entry->Y),
-						static_cast<PointCoordinateType>(entry->Z));
+			CCVector3d C(entry->X,
+						entry->Y,
+						entry->Z);
 			params.cameraCenter = C;
 
 			pViewPort->setParameters(params);
@@ -161,12 +165,13 @@ bool qPosesDlg::loadFile(QString fileName)
 
 			m_poseObjects.append(pViewPort);
 		}
+		m_fileLoadModal->onProgressValueChanged(100);
+		return true;
 	}
-
-	m_fileLoadModal->onProgressValueChanged(100);
+	return false;
 }
 
-void QPosesDlg::handleFileLoadFinished()
+void qPosesDlg::handleFileLoadFinished()
 {
 	if (m_fileLoadResult)
 	{
@@ -176,7 +181,7 @@ void QPosesDlg::handleFileLoadFinished()
 	m_fileLoadModal->close();
 }
 
-void QPosesDlg::applyViewport(const cc2DViewportObject* viewport)
+void qPosesDlg::applyViewport(const cc2DViewportObject* viewport)
 {
 	if (viewport == nullptr)
 		return;
